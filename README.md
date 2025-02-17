@@ -2,7 +2,6 @@
 
 # **VM Management Scripts**
 
-## **Project Title**
 VM Management Scripts for Action Execution and File Synchronization
 
 ## **Description**
