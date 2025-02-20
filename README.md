@@ -22,7 +22,7 @@ These scripts are useful for managing remote VMs, automating tasks, and ensuring
 ### Setup Steps:
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/vm-management-scripts.git
+   git clone https://github.com/fereidoon27/vm-management-scripts.git
    cd vm-management-scripts
    ```
 
