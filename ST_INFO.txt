@@ -8,23 +8,3 @@ DEST_PORT=22
 
 SOURCE_PATH=/home/ubuntu/van-buren-rlc-router-binance-0-shared
 DEST_PATH=/home/ubuntu/van-buren-rlc-router-binance-0-shared
-
-
-
-
-#CR-ARVAN
-alias cr1-arvan="ssh ubuntu@185.204.170.177"
-alias cr2-arvan="ssh ubuntu@185.204.171.190"
-alias cr3-arvan="ssh ubuntu@185.204.170.246"
-alias cr4-arvan="ssh ubuntu@185.204.168.198"
-alias cr5-arvan="ssh ubuntu@185.204.169.190"
-alias cr6-arvan="ssh ubuntu@185.204.170.134"
-
-
-#CR-AZMA
-alias cr1-azma="ssh ubuntu@172.20.10.31"
-alias cr2-azma="ssh ubuntu@172.20.10.32"
-alias cr3-azma="ssh ubuntu@172.20.10.33"
-alias cr4-azma="ssh ubuntu@172.20.10.34"
-alias cr5-azma="ssh ubuntu@172.20.10.35"
-alias cr6-azma="ssh ubuntu@172.20.10.36"
