@@ -29,3 +29,7 @@ sudo apt install -y zip unzip openjdk-17-jdk telnet chrony prometheus-node-expor
 # sudo systemctl start prometheus-node-exporter
 
 # echo "Installation completed successfully!"
+
+
+
+
