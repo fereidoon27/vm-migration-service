@@ -99,7 +99,9 @@ $DEST_SSH "mkdir -p $DEST_PATH"
 if [ "$DIRECT_ACCESS" = "yes" ]; then
     # Direct file transfer from source to destination
     log "Direct access available. Transferring file..."
-    $SOURCE_SSH "rsync -az -e 'ssh -p $DEST_PORT' $SOURCE_FILE $DEST_USER@$DEST_IP:$DEST_PATH/"
+    #$SOURCE_SSH "rsync -az -e 'ssh -p $DEST_PORT' $SOURCE_FILE $DEST_USER@$DEST_IP:$DEST_PATH/"
+    $SOURCE_SSH "sudo rsync -az -e 'ssh -p $DEST_PORT' $SOURCE_FILE $DEST_USER@$DEST_IP:$DEST_PATH/"
+
     
     if [ $? -eq 0 ]; then
         log "File transfer completed successfully!"
@@ -127,8 +129,9 @@ else
     
     # Step 2: Main to Destination
     log "Step 2: Copying from main VM to destination..."
-    rsync -az -e "ssh -p $DEST_PORT" "$TEMP_DIR/$(basename "$SOURCE_FILE")" "$DEST_USER@$DEST_IP:$DEST_PATH/"
-    
+    #rsync -az -e "ssh -p $DEST_PORT" "$TEMP_DIR/$(basename "$SOURCE_FILE")" "$DEST_USER@$DEST_IP:$DEST_PATH/"
+    rsync -az -e "ssh -p $DEST_PORT" "$TEMP_DIR/$(basename "$SOURCE_FILE")" "$DEST_USER@$DEST_IP:$DEST_PATH/" --rsync-path="sudo rsync"
+
     if [ $? -ne 0 ]; then
         log "ERROR: Failed to copy from main VM to destination"
         rm -rf "$TEMP_DIR"
