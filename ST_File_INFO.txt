@@ -1,0 +1,8 @@
+SOURCE_USER=ubuntu
+SOURCE_IP=172.86.68.12
+SOURCE_PORT=22
+DEST_USER=ubuntu
+DEST_IP=185.204.170.177
+DEST_PORT=22
+SOURCE_FILE=/etc/profile.d/hermes-env.sh
+DEST_PATH=/etc/profile.d
