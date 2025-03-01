@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Get script directory for finding config file
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CONFIG_FILE="$SCRIPT_DIR/ST_INFO.txt"
+
 # Log file setup
 LOG_FILE="$HOME/sync_$(date +%Y%m%d).log"
 
@@ -8,20 +12,58 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
-# Get input parameters
-read -p "Enter source VM username: " SOURCE_USER
-read -p "Enter source VM IP: " SOURCE_IP
-read -p "Enter source VM SSH port (default: 22): " SOURCE_PORT
-SOURCE_PORT=${SOURCE_PORT:-22}
+# Function to read config value with default
+read_config() {
+    local key="$1"
+    local default="$2"
+    local value=""
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        value=$(grep "^$key=" "$CONFIG_FILE" | cut -d= -f2)
+    fi
+    
+    echo "${value:-$default}"
+}
 
-read -p "Enter destination VM username: " DEST_USER
-read -p "Enter destination VM IP: " DEST_IP
-read -p "Enter destination VM SSH port (default: 22): " DEST_PORT
-DEST_PORT=${DEST_PORT:-22}
+# Load default values from config file
+DEFAULT_SOURCE_USER=$(read_config "SOURCE_USER" "root")
+DEFAULT_SOURCE_IP=$(read_config "SOURCE_IP" "127.0.0.1")
+DEFAULT_SOURCE_PORT=$(read_config "SOURCE_PORT" "22")
+DEFAULT_DEST_USER=$(read_config "DEST_USER" "root")
+DEFAULT_DEST_IP=$(read_config "DEST_IP" "127.0.0.1")
+DEFAULT_DEST_PORT=$(read_config "DEST_PORT" "22")
+DEFAULT_SOURCE_PATH=$(read_config "SOURCE_PATH" "/tmp")
+DEFAULT_DEST_PATH=$(read_config "DEST_PATH" "")
 
-read -p "Enter source folder path to sync: " SOURCE_PATH
-read -p "Enter destination folder path (default: same as source): " DEST_PATH
-DEST_PATH=${DEST_PATH:-$SOURCE_PATH}
+# Get input parameters with defaults
+read -p "Enter source VM username [$DEFAULT_SOURCE_USER]: " SOURCE_USER
+SOURCE_USER=${SOURCE_USER:-$DEFAULT_SOURCE_USER}
+
+read -p "Enter source VM IP [$DEFAULT_SOURCE_IP]: " SOURCE_IP
+SOURCE_IP=${SOURCE_IP:-$DEFAULT_SOURCE_IP}
+
+read -p "Enter source VM SSH port [$DEFAULT_SOURCE_PORT]: " SOURCE_PORT
+SOURCE_PORT=${SOURCE_PORT:-$DEFAULT_SOURCE_PORT}
+
+read -p "Enter destination VM username [$DEFAULT_DEST_USER]: " DEST_USER
+DEST_USER=${DEST_USER:-$DEFAULT_DEST_USER}
+
+read -p "Enter destination VM IP [$DEFAULT_DEST_IP]: " DEST_IP
+DEST_IP=${DEST_IP:-$DEFAULT_DEST_IP}
+
+read -p "Enter destination VM SSH port [$DEFAULT_DEST_PORT]: " DEST_PORT
+DEST_PORT=${DEST_PORT:-$DEFAULT_DEST_PORT}
+
+read -p "Enter source folder path to sync [$DEFAULT_SOURCE_PATH]: " SOURCE_PATH
+SOURCE_PATH=${SOURCE_PATH:-$DEFAULT_SOURCE_PATH}
+
+# If the default destination path is empty, use the source path as default
+if [ -z "$DEFAULT_DEST_PATH" ]; then
+    DEFAULT_DEST_PATH=$SOURCE_PATH
+fi
+
+read -p "Enter destination folder path [$DEFAULT_DEST_PATH]: " DEST_PATH
+DEST_PATH=${DEST_PATH:-$DEFAULT_DEST_PATH}
 
 # Build SSH connection strings
 SOURCE_SSH="ssh -p $SOURCE_PORT $SOURCE_USER@$SOURCE_IP"

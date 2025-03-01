@@ -11,6 +11,7 @@ while true; do
 
 
     echo -e "${CYAN}========================================${RESET}"
+    echo -e "\n${YELLOW}This script runs from the main VM (e.g., Main-Crypto-AZMA), which has access to all other VMs.${RESET}"
     echo -e "\n${YELLOW}Select the action you would like to perform:${RESET}\n"
 
     echo -e "${GREEN}1: Deploy action.sh${RESET}"

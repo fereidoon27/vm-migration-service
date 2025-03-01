@@ -31,5 +31,8 @@ sudo apt install -y zip unzip openjdk-17-jdk telnet chrony prometheus-node-expor
 # echo "Installation completed successfully!"
 
 
+the destination vm dose not have the public ssh of source vm .
+so transfering must be done through the main vm. 
+but : 
 
 
