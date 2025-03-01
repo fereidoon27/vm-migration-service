@@ -32,7 +32,7 @@ DEFAULT_SOURCE_PORT=$(read_config "SOURCE_PORT" "22")
 DEFAULT_DEST_USER=$(read_config "DEST_USER" "root")
 DEFAULT_DEST_IP=$(read_config "DEST_IP" "127.0.0.1")
 DEFAULT_DEST_PORT=$(read_config "DEST_PORT" "22")
-DEFAULT_SOURCE_PATH=$(read_config "SOURCE_PATH" "/home/${DEFAULT_SOURCE_USER}")
+DEFAULT_SOURCE_PATH=$(read_config "SOURCE_PATH" "/tmp")
 DEFAULT_DEST_PATH=$(read_config "DEST_PATH" "")
 
 # Get input parameters with defaults
@@ -97,14 +97,10 @@ DIRECT_ACCESS=$($SOURCE_SSH "ssh -p $DEST_PORT -o BatchMode=yes -o ConnectTimeou
 log "Creating directory on destination..."
 $DEST_SSH "mkdir -p $DEST_PATH"
 
-# Build rsync include/exclude patterns for the specific requirements
-RSYNC_OPTS="-az --include='van-buren-*/' --include='van-buren-*/**' --include='*.sh' --include='.secret/' --include='.secret/**' --exclude='*'"
-
 if [ "$DIRECT_ACCESS" = "yes" ]; then
     # Direct sync from source to destination
     log "Direct access available. Performing direct sync..."
-    log "Only transferring: van-buren-* directories, *.sh files, and .secret/ folder"
-    $SOURCE_SSH "rsync $RSYNC_OPTS -e 'ssh -p $DEST_PORT' $SOURCE_PATH/ $DEST_USER@$DEST_IP:$DEST_PATH/"
+    $SOURCE_SSH "rsync -az -e 'ssh -p $DEST_PORT' $SOURCE_PATH/ $DEST_USER@$DEST_IP:$DEST_PATH/"
     
     if [ $? -eq 0 ]; then
         log "Direct sync completed successfully!"
@@ -115,7 +111,6 @@ if [ "$DIRECT_ACCESS" = "yes" ]; then
 else
     # Indirect sync through main VM
     log "No direct access. Performing indirect sync through main VM..."
-    log "Only transferring: van-buren-* directories, *.sh files, and .secret/ folder"
     
     # Create temporary directory on main VM
     TEMP_DIR="/tmp/sync_$$"
@@ -123,7 +118,7 @@ else
     
     # Step 1: Source to Main
     log "Step 1: Copying from source to main VM..."
-    rsync $RSYNC_OPTS -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH/" "$TEMP_DIR/"
+    rsync -az -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH/" "$TEMP_DIR/"
     
     if [ $? -ne 0 ]; then
         log "ERROR: Failed to copy from source to main VM"
