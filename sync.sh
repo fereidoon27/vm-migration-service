@@ -19,7 +19,9 @@ read -p "Enter destination VM IP: " DEST_IP
 read -p "Enter destination VM SSH port (default: 22): " DEST_PORT
 DEST_PORT=${DEST_PORT:-22}
 
-read -p "Enter folder path to sync: " SYNC_PATH
+read -p "Enter source folder path to sync: " SOURCE_PATH
+read -p "Enter destination folder path (default: same as source): " DEST_PATH
+DEST_PATH=${DEST_PATH:-$SOURCE_PATH}
 
 # Build SSH connection strings
 SOURCE_SSH="ssh -p $SOURCE_PORT $SOURCE_USER@$SOURCE_IP"
@@ -51,12 +53,12 @@ DIRECT_ACCESS=$($SOURCE_SSH "ssh -p $DEST_PORT -o BatchMode=yes -o ConnectTimeou
 
 # Create directory on destination
 log "Creating directory on destination..."
-$DEST_SSH "mkdir -p $SYNC_PATH"
+$DEST_SSH "mkdir -p $DEST_PATH"
 
 if [ "$DIRECT_ACCESS" = "yes" ]; then
     # Direct sync from source to destination
     log "Direct access available. Performing direct sync..."
-    $SOURCE_SSH "rsync -az -e 'ssh -p $DEST_PORT' $SYNC_PATH/ $DEST_USER@$DEST_IP:$SYNC_PATH/"
+    $SOURCE_SSH "rsync -az -e 'ssh -p $DEST_PORT' $SOURCE_PATH/ $DEST_USER@$DEST_IP:$DEST_PATH/"
     
     if [ $? -eq 0 ]; then
         log "Direct sync completed successfully!"
@@ -74,7 +76,7 @@ else
     
     # Step 1: Source to Main
     log "Step 1: Copying from source to main VM..."
-    rsync -az -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SYNC_PATH/" "$TEMP_DIR/"
+    rsync -az -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH/" "$TEMP_DIR/"
     
     if [ $? -ne 0 ]; then
         log "ERROR: Failed to copy from source to main VM"
@@ -84,7 +86,7 @@ else
     
     # Step 2: Main to Destination
     log "Step 2: Copying from main VM to destination..."
-    rsync -az -e "ssh -p $DEST_PORT" "$TEMP_DIR/" "$DEST_USER@$DEST_IP:$SYNC_PATH/"
+    rsync -az -e "ssh -p $DEST_PORT" "$TEMP_DIR/" "$DEST_USER@$DEST_IP:$DEST_PATH/"
     
     if [ $? -ne 0 ]; then
         log "ERROR: Failed to copy from main VM to destination"
