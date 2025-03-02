@@ -9,7 +9,6 @@ RESET='\033[0m'
 
 while true; do
 
-
     echo -e "${CYAN}========================================${RESET}"
     echo -e "\n${YELLOW}This script runs from the main VM (e.g., Main-Crypto-AZMA), which has access to all other VMs.${RESET}"
     echo -e "\n${YELLOW}Select the action you would like to perform:${RESET}\n"
@@ -24,13 +23,17 @@ while true; do
     echo -e "   - ${CYAN}Direct synchronization or via an intermediate machine if needed.${RESET}"
     echo ""
 
+    echo -e "${GREEN}3: Edit EDN Based on IP ${RESET}"
+    echo -e "   - ${CYAN}Detects network environment (internal/external).${RESET}"
+    echo -e "   - ${CYAN}Connects to a remote server via SSH.${RESET}"
+    echo -e "   - ${CYAN}Modifies proxy settings in configuration files accordingly.${RESET}"
+    echo ""
+
     echo -e "${RED}0: Exit - Terminate the main script.${RESET}"
     echo -e "${CYAN}========================================${RESET}"
 
-
-    
     # Prompt the user for input
-    read -p "Enter a number (0, 1, 2): " choice
+    read -p "Enter a number (0, 1, 2, 3): " choice
 
     case $choice in
         1)
@@ -43,6 +46,11 @@ while true; do
             echo "Running sync.sh..."
             ./sync.sh
             ;;
+        3)
+            # Run edit_edn_base_on_ip.sh script
+            echo "Running edit_edn_base_on_ip.sh..."
+            ./edit_edn_base_on_ip.sh
+            ;;
         0)
             # Exit the script
             echo "Exiting Main Script. Goodbye!"
@@ -50,7 +58,7 @@ while true; do
             ;;
         *)
             # Handle invalid input
-            echo "Invalid choice. Please enter a valid number (0, 1, or 2)."
+            echo "Invalid choice. Please enter a valid number (0, 1, 2, or 3)."
             ;;
     esac
 done

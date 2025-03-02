@@ -7,7 +7,7 @@ DEST_IP=10.10.20.206
 DEST_PORT=22
 
 SOURCE_PATH=/home/amin/
-DEST_PATH=/home/test1/
+DEST_PATH=/home/test1/transfer
 
 
 
