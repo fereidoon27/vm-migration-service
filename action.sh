@@ -4,8 +4,9 @@
 ACTION_LOG="$HOME/service_actions_$(date +%Y%m%d).log"
 TIMESTAMP_LOG="$HOME/service_timestamps_$(date +%Y%m%d).log"
 
-# Set Info directory path
+# Set directory paths
 INFO_PATH="$(dirname "$0")/Info"
+DEPLOYMENT_SCRIPTS_PATH="$(dirname "$0")/deployment_scripts"
 
 # Function for logging
 log() {
@@ -39,30 +40,63 @@ execute_action() {
     
     case $action_num in
         1)
-            action_name="Create newfile_1.txt"
-            action_command="echo '(this is written by action 1 )' > $target_path/newfile_1.txt"
+            action_script="deploy_all.sh"
+            action_name="Deploy All Services"
+            description="Run 111-ACTION-deploy-services.sh in all van-buren directories"
             ;;
         2)
-            action_name="Create newfile_2.txt"
-            action_command="echo '(this is written by action 2 )' > $target_path/newfile_2.txt"
+            action_script="start_all.sh"
+            action_name="Start All Services"
+            description="Run 222-ACTION-start-services.sh in all van-buren directories"
             ;;
         3)
-            action_name="Create newfile_3.txt"
-            action_command="echo '(this is written by action 3 )' > $target_path/newfile_3.txt"
+            action_script="stop_all.sh"
+            action_name="Stop All Services"
+            description="Run 000-ACTION-stop-services.sh in all van-buren directories"
             ;;
         4)
-            action_name="Create newfile_4.txt"
-            action_command="echo '(this is written by action 4 )' > $target_path/newfile_4.txt"
+            action_script="purge_all.sh"
+            action_name="Purge All Services"
+            description="Run 999-ACTION-purge-services.sh in all van-buren directories"
             ;;
         *)
             log "ERROR: Invalid action number: $action_num"
             return 1
             ;;
     esac
+    
     log "Starting action $action_num: $action_name"
     log_timestamp "$action_name" "Started"
     
-    $ssh_cmd "$action_command"
+    # Check if the script exists locally
+    if [ ! -f "$DEPLOYMENT_SCRIPTS_PATH/$action_script" ]; then
+        log "ERROR: Script $action_script does not exist in $DEPLOYMENT_SCRIPTS_PATH"
+        return 1
+    fi
+    
+    # Check if the script is executable locally
+    if [ ! -x "$DEPLOYMENT_SCRIPTS_PATH/$action_script" ]; then
+        log "ERROR: Script $action_script is not executable"
+        return 1
+    fi
+    
+    # Create temp directory on remote machine if it doesn't exist
+    $ssh_cmd "mkdir -p /tmp/deployment_scripts"
+    
+    # Copy the script to the remote machine
+    log "Copying $action_script to remote machine..."
+    scp -P "${target_port}" "$DEPLOYMENT_SCRIPTS_PATH/$action_script" "${target_user}@${target_ip}:/tmp/deployment_scripts/"
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to copy script to remote machine"
+        return 1
+    fi
+    
+    # Ensure the script is executable on the remote machine
+    $ssh_cmd "chmod +x /tmp/deployment_scripts/$action_script"
+    
+    # Execute the script on the remote machine
+    log "Executing $action_script on remote machine..."
+    $ssh_cmd "cd $target_path && /tmp/deployment_scripts/$action_script"
     local result=$?
     
     if [ $result -eq 0 ]; then
@@ -122,11 +156,17 @@ while true; do
         ACTIVE_SSH_CMD="$SOURCE_SSH_CMD"
         ACTIVE_PATH="$SOURCE_PATH"
         ACTIVE_VM_NAME="Source VM"
+        target_user="$SOURCE_USER"
+        target_ip="$SOURCE_IP"
+        target_port="$SOURCE_PORT"
         break
     elif [[ "$vm_choice" == "2" ]]; then
         ACTIVE_SSH_CMD="$DEST_SSH_CMD"
         ACTIVE_PATH="$DEST_PATH"
         ACTIVE_VM_NAME="Destination VM"
+        target_user="$DEST_USER"
+        target_ip="$DEST_IP"
+        target_port="$DEST_PORT"
         break
     else
         echo "Invalid choice. Please enter 1 or 2."
@@ -150,10 +190,14 @@ fi
 
 # Display available actions
 echo -e "\nAvailable actions:"
-echo "1: Create newfile_1.txt (Write: (this is written by action 1 ))"
-echo "2: Create newfile_2.txt (Write: (this is written by action 2 ))"
-echo "3: Create newfile_3.txt (Write: (this is written by action 3 ))"
-echo "4: Create newfile_4.txt (Write: (this is written by action 4 ))"
+echo "1: Deploy All Services - Runs deploy_all.sh"
+echo "   (Executes 111-ACTION-deploy-services.sh in all van-buren directories)"
+echo "2: Start All Services - Runs start_all.sh"
+echo "   (Executes 222-ACTION-start-services.sh in all van-buren directories)"
+echo "3: Stop All Services - Runs stop_all.sh"
+echo "   (Executes 000-ACTION-stop-services.sh in all van-buren directories)"
+echo "4: Purge All Services - Runs purge_all.sh"
+echo "   (Executes 999-ACTION-purge-services.sh in all van-buren directories)"
 
 # Get sequence of actions
 while true; do
@@ -171,10 +215,10 @@ echo "This will execute the following actions on $ACTIVE_VM_NAME:"
 for (( i=0; i<${#sequence}; i++ )); do
     action_num=${sequence:$i:1}
     case $action_num in
-        1) echo "$(($i+1)). Create newfile_1.txt" ;;
-        2) echo "$(($i+1)). Create newfile_2.txt" ;;
-        3) echo "$(($i+1)). Create newfile_3.txt" ;;
-        4) echo "$(($i+1)). Create newfile_4.txt" ;;
+        1) echo "$(($i+1)). Deploy All Services" ;;
+        2) echo "$(($i+1)). Start All Services" ;;
+        3) echo "$(($i+1)). Stop All Services" ;;
+        4) echo "$(($i+1)). Purge All Services" ;;
     esac
 done
 
