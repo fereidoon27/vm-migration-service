@@ -26,15 +26,19 @@ while true; do
     echo -e "${GREEN}3: Set environment variable & Edit EDN Based on IP ${RESET}"
     echo -e "   - ${CYAN}Connects to a remote server via SSH.${RESET}"
     echo -e "   - ${CYAN}Detects network environment (internal/external).${RESET}"
-    echo -e "   - ${CYAN}copies the appropriate environment file.${RESET}"
+    echo -e "   - ${CYAN}Copies the appropriate environment file.${RESET}"
     echo -e "   - ${CYAN}Modifies proxy settings in configuration files accordingly.${RESET}"
+    echo ""
+
+    echo -e "${GREEN}4: VM Initialization & Package Installer${RESET}"
+    echo -e "   - ${CYAN}Remotely updates, upgrades, reboots, and installs essential packages on an Ubuntu 22.04 VM via SSH.${RESET}"
     echo ""
 
     echo -e "${RED}0: Exit - Terminate the main script.${RESET}"
     echo -e "${CYAN}========================================${RESET}"
 
     # Prompt the user for input
-    read -p "Enter a number (0, 1, 2, 3): " choice
+    read -p "Enter a number (0, 1, 2, 3, 4): " choice
 
     case $choice in
         1)
@@ -52,6 +56,11 @@ while true; do
             echo "Running edit_edn_base_on_ip.sh..."
             ./edit_edn_base_on_ip.sh
             ;;
+        4)
+            # Run install_packages.sh script
+            echo "Running install_packages.sh..."
+            ./install_packages.sh
+            ;;
         0)
             # Exit the script
             echo "Exiting Main Script. Goodbye!"
@@ -59,7 +68,7 @@ while true; do
             ;;
         *)
             # Handle invalid input
-            echo "Invalid choice. Please enter a valid number (0, 1, 2, or 3)."
+            echo "Invalid choice. Please enter a valid number (0, 1, 2, 3, or 4)."
             ;;
     esac
 done
