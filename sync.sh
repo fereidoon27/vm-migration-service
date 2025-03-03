@@ -65,45 +65,31 @@ echo "   (van-buren-* directories, .sh files, .secret/ folder)"
 read -p "Choose an option (1-3) [1]: " TRANSFER_OPTION
 TRANSFER_OPTION=${TRANSFER_OPTION:-1}
 
-# Based on option, get additional input
-case $TRANSFER_OPTION in
-    1)
-        read -p "Enter the path to the specific file on source VM: " SOURCE_PATH
-        ;;
-    2)
-        read -p "Enter the path to the specific folder on source VM: " SOURCE_PATH
-        ;;
-    3)
-        # Option 3 uses predefined patterns from home directory
-        SOURCE_PATH="~"
-        ;;
-    *)
-        log "ERROR: Invalid option selected"
-        exit 1
-        ;;
-esac
-
 # Build SSH connection strings
-SOURCE_SSH="ssh -p $SOURCE_PORT $SOURCE_USER@$SOURCE_IP"
-DEST_SSH="ssh -p $DEST_PORT $DEST_USER@$DEST_IP"
+SOURCE_SSH="ssh -o ConnectTimeout=10 -p $SOURCE_PORT $SOURCE_USER@$SOURCE_IP"
+DEST_SSH="ssh -o ConnectTimeout=10 -p $DEST_PORT $DEST_USER@$DEST_IP"
 
 # Function to test SSH connection
 test_ssh() {
     local ssh_cmd="$1"
-    $ssh_cmd "exit" > /dev/null 2>&1
-    return $?
+    local host_desc="$2"
+    log "Testing connection to $host_desc..."
+    
+    if ! $ssh_cmd "echo Connection successful" > /dev/null 2>&1; then
+        log "ERROR: Cannot connect to $host_desc"
+        return 1
+    else
+        log "Connection to $host_desc successful"
+        return 0
+    fi
 }
 
 # Check SSH connections
-log "Checking SSH connections..."
-
-if ! test_ssh "$SOURCE_SSH"; then
-    log "ERROR: Cannot connect to source VM ($SOURCE_USER@$SOURCE_IP:$SOURCE_PORT)"
+if ! test_ssh "$SOURCE_SSH" "source VM ($SOURCE_USER@$SOURCE_IP:$SOURCE_PORT)"; then
     exit 1
 fi
 
-if ! test_ssh "$DEST_SSH"; then
-    log "ERROR: Cannot connect to destination VM ($DEST_USER@$DEST_IP:$DEST_PORT)"
+if ! test_ssh "$DEST_SSH" "destination VM ($DEST_USER@$DEST_IP:$DEST_PORT)"; then
     exit 1
 fi
 
@@ -111,87 +97,125 @@ fi
 log "Creating directory on destination..."
 $DEST_SSH "mkdir -p $DEST_PATH"
 
+# Get source home directory for proper path expansion
+SOURCE_HOME=$($SOURCE_SSH "echo \$HOME")
+log "Source home directory: $SOURCE_HOME"
+
+# Based on option, get additional input
+case $TRANSFER_OPTION in
+    1)
+        read -p "Enter the path to the specific file on source VM: " SOURCE_PATH
+        # Replace tilde with actual home directory if present
+        SOURCE_PATH=${SOURCE_PATH/#\~/$SOURCE_HOME}
+        ;;
+    2)
+        read -p "Enter the path to the specific folder on source VM: " SOURCE_PATH
+        # Replace tilde with actual home directory if present
+        SOURCE_PATH=${SOURCE_PATH/#\~/$SOURCE_HOME}
+        ;;
+    3)
+        # Option 3 uses predefined patterns from home directory
+        SOURCE_PATH="$SOURCE_HOME"
+        ;;
+    *)
+        log "ERROR: Invalid option selected"
+        exit 1
+        ;;
+esac
+
 # Test if source can directly access destination
 log "Testing direct connection from source to destination..."
 DIRECT_ACCESS=$($SOURCE_SSH "ssh -p $DEST_PORT -o BatchMode=yes -o ConnectTimeout=5 $DEST_USER@$DEST_IP exit 2>/dev/null && echo yes || echo no")
+log "Direct access: $DIRECT_ACCESS"
 
 # Prepare rsync options based on the option selected
+RSYNC_OPTS="-az --progress"
+
 if [ "$TRANSFER_OPTION" -eq 1 ]; then
     # For single file, don't add trailing slash to SOURCE_PATH
-    RSYNC_OPTS="-az"
     FILE_NAME=$(basename "$SOURCE_PATH")
     DEST_FULL="$DEST_PATH/$FILE_NAME"
     log "Transferring specific file: $SOURCE_PATH to $DEST_FULL"
 elif [ "$TRANSFER_OPTION" -eq 2 ]; then
     # For directory, add trailing slash to SOURCE_PATH to copy contents
-    RSYNC_OPTS="-az"
     SOURCE_PATH="${SOURCE_PATH%/}/"
     DEST_FULL="$DEST_PATH"
     log "Transferring specific folder: $SOURCE_PATH to $DEST_FULL"
 elif [ "$TRANSFER_OPTION" -eq 3 ]; then
-    # For specific patterns, create a pattern list as an array
-    INCLUDE_PATTERNS=(
-        "--include=van-buren-*/"
-        "--include=van-buren-*/**"
-        "--include=*.sh"
-        "--include=.secret/"
-        "--include=.secret/**"
-        "--exclude=*"
-    )
-    RSYNC_OPTS="-az ${INCLUDE_PATTERNS[*]}"
-    SOURCE_PATH="~/"
+    # For pattern matching, create a temporary file with the patterns
+    PATTERN_FILE="/tmp/rsync_patterns_$$"
+    cat > "$PATTERN_FILE" << EOF
++ van-buren-*/
++ van-buren-*/**
++ *.sh
++ .secret/
++ .secret/**
+- *
+EOF
+    SOURCE_PATH="$SOURCE_HOME/"
     DEST_FULL="$DEST_PATH"
+    RSYNC_OPTS="$RSYNC_OPTS --include-from=$PATTERN_FILE"
     log "Transferring pattern-matched files/folders from home directory"
+    log "Pattern file created at $PATTERN_FILE with the following patterns:"
+    cat "$PATTERN_FILE" | while read line; do log "  $line"; done
 fi
+
+# Function to handle transfer failures
+handle_failure() {
+    local stage="$1"
+    log "ERROR: Failed during $stage"
+    [ -f "$PATTERN_FILE" ] && rm -f "$PATTERN_FILE"
+    [ -d "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
+    exit 1
+}
 
 if [ "$DIRECT_ACCESS" = "yes" ]; then
     # Direct sync from source to destination
     log "Direct access available. Performing direct sync..."
     
-    if [ "$TRANSFER_OPTION" -eq 1 ]; then
-        # For single file
-        $SOURCE_SSH "rsync $RSYNC_OPTS -e 'ssh -p $DEST_PORT' $SOURCE_PATH $DEST_USER@$DEST_IP:$DEST_FULL"
-    elif [ "$TRANSFER_OPTION" -eq 3 ]; then
-        # For pattern matching, create the command with proper include/exclude patterns
-        REMOTE_CMD="rsync -az --include='van-buren-*/' --include='van-buren-*/**' --include='*.sh' --include='.secret/' --include='.secret/**' --exclude='*' -e 'ssh -p $DEST_PORT' $SOURCE_PATH $DEST_USER@$DEST_IP:$DEST_FULL"
-        $SOURCE_SSH "$REMOTE_CMD"
+    # Create the rsync command
+    if [ "$TRANSFER_OPTION" -eq 3 ]; then
+        # For pattern matching, copy the pattern file to source VM
+        REMOTE_PATTERN_FILE="/tmp/rsync_patterns_$$.remote"
+        scp -P "$SOURCE_PORT" "$PATTERN_FILE" "$SOURCE_USER@$SOURCE_IP:$REMOTE_PATTERN_FILE" || handle_failure "copying pattern file to source VM"
+        
+        # Execute the rsync command with the pattern file
+        log "Starting direct transfer with patterns..."
+        $SOURCE_SSH "rsync -az --progress --include-from=$REMOTE_PATTERN_FILE -e 'ssh -p $DEST_PORT' $SOURCE_PATH $DEST_USER@$DEST_IP:$DEST_FULL" || handle_failure "direct transfer"
+        
+        # Cleanup remote pattern file
+        $SOURCE_SSH "rm -f $REMOTE_PATTERN_FILE"
     else
-        # For regular directory
-        $SOURCE_SSH "rsync $RSYNC_OPTS -e 'ssh -p $DEST_PORT' $SOURCE_PATH $DEST_USER@$DEST_IP:$DEST_FULL"
+        # For single file or directory
+        log "Starting direct transfer..."
+        $SOURCE_SSH "rsync $RSYNC_OPTS -e 'ssh -p $DEST_PORT' $SOURCE_PATH $DEST_USER@$DEST_IP:$DEST_FULL" || handle_failure "direct transfer"
     fi
     
-    if [ $? -eq 0 ]; then
-        log "Direct sync completed successfully!"
-    else
-        log "ERROR: Direct sync failed!"
-        exit 1
-    fi
+    log "Direct sync completed successfully!"
 else
     # Indirect sync through main VM
     log "No direct access. Performing indirect sync through main VM..."
     
     # Create temporary directory on main VM
     TEMP_DIR="/tmp/sync_$$"
-    mkdir -p "$TEMP_DIR"
+    mkdir -p "$TEMP_DIR" || handle_failure "creating temporary directory"
+    log "Temporary directory created: $TEMP_DIR"
     
     # Step 1: Source to Main
     log "Step 1: Copying from source to main VM..."
     
     if [ "$TRANSFER_OPTION" -eq 1 ]; then
         # For single file
-        rsync $RSYNC_OPTS -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH" "$TEMP_DIR/"
+        log "Transferring file from source to main VM..."
+        rsync $RSYNC_OPTS -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH" "$TEMP_DIR/" || handle_failure "copy from source to main VM"
+    elif [ "$TRANSFER_OPTION" -eq 2 ]; then
+        # For directory
+        log "Transferring directory from source to main VM..."
+        rsync $RSYNC_OPTS -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH" "$TEMP_DIR/" || handle_failure "copy from source to main VM"
     elif [ "$TRANSFER_OPTION" -eq 3 ]; then
-        # For pattern matching, use separate include/exclude options
-        rsync -az --include="van-buren-*/" --include="van-buren-*/**" --include="*.sh" --include=".secret/" --include=".secret/**" --exclude="*" -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH" "$TEMP_DIR/"
-    else
-        # For regular directory
-        rsync $RSYNC_OPTS -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH" "$TEMP_DIR/"
-    fi
-    
-    if [ $? -ne 0 ]; then
-        log "ERROR: Failed to copy from source to main VM"
-        rm -rf "$TEMP_DIR"
-        exit 1
+        # For pattern matching
+        log "Transferring pattern-matched files from source to main VM..."
+        rsync $RSYNC_OPTS --include-from="$PATTERN_FILE" -e "ssh -p $SOURCE_PORT" "$SOURCE_USER@$SOURCE_IP:$SOURCE_PATH" "$TEMP_DIR/" || handle_failure "copy from source to main VM"
     fi
     
     # Step 2: Main to Destination
@@ -200,20 +224,18 @@ else
     if [ "$TRANSFER_OPTION" -eq 1 ]; then
         # For single file, get filename
         FILE_NAME=$(basename "$SOURCE_PATH")
-        rsync $RSYNC_OPTS -e "ssh -p $DEST_PORT" "$TEMP_DIR/$FILE_NAME" "$DEST_USER@$DEST_IP:$DEST_FULL"
+        log "Transferring $FILE_NAME from main VM to destination..."
+        rsync $RSYNC_OPTS -e "ssh -p $DEST_PORT" "$TEMP_DIR/$FILE_NAME" "$DEST_USER@$DEST_IP:$DEST_FULL" || handle_failure "copy from main VM to destination"
     else
         # For directory or patterns
-        rsync -az -e "ssh -p $DEST_PORT" "$TEMP_DIR/" "$DEST_USER@$DEST_IP:$DEST_FULL"
-    fi
-    
-    if [ $? -ne 0 ]; then
-        log "ERROR: Failed to copy from main VM to destination"
-        rm -rf "$TEMP_DIR"
-        exit 1
+        log "Transferring all files from main VM to destination..."
+        rsync $RSYNC_OPTS -e "ssh -p $DEST_PORT" "$TEMP_DIR/" "$DEST_USER@$DEST_IP:$DEST_FULL" || handle_failure "copy from main VM to destination"
     fi
     
     # Cleanup
+    log "Cleaning up temporary files..."
     rm -rf "$TEMP_DIR"
+    [ -f "$PATTERN_FILE" ] && rm -f "$PATTERN_FILE"
     log "Indirect sync completed successfully!"
 fi
 

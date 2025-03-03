@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Default connection values
-DEFAULT_USER="test1"
-DEFAULT_IP="10.10.20.206"
+DEFAULT_USER="amin"
+DEFAULT_IP="10.10.20.201"
 DEFAULT_PORT="22"
 
 # Ask for connection values with defaults
@@ -18,8 +18,8 @@ DEST_PORT=${DEST_PORT:-$DEFAULT_PORT}
 # Execute a simple script to detect the network type
 NETWORK_DETECT_SCRIPT="
 #!/bin/bash
-# CURRENT_IP=\$(ip -4 -o addr show scope global | awk '{print \$4}' | cut -d/ -f1 | head -n1)
-CURRENT_IP=172.20.10.20 #just for test
+CURRENT_IP=\$(ip -4 -o addr show scope global | awk '{print \$4}' | cut -d/ -f1 | head -n1)
+# CURRENT_IP=172.20.10.20 #just for test
 if [[ \"\$CURRENT_IP\" == 172.20.* ]]; then
     echo \"internal\"
 else
@@ -91,6 +91,6 @@ echo \"Environment and proxy settings updated.\"
 
 # Execute the update script
 echo "Updating proxy settings and configuring environment..."
-ssh -p "$DEST_PORT" "${DEST_USER}@${DEST_IP}" "$UPDATE_SCRIPT"
-
+# ssh -p "$DEST_PORT" "${DEST_USER}@${DEST_IP}" "$UPDATE_SCRIPT"
+ssh -p "$DEST_PORT" "${DEST_USER}@${DEST_IP}" "$UPDATE_SCRIPT && source ~/.bashrc"
 echo "All operations completed successfully."

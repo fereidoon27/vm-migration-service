@@ -23,9 +23,10 @@ while true; do
     echo -e "   - ${CYAN}Direct synchronization or via an intermediate machine if needed.${RESET}"
     echo ""
 
-    echo -e "${GREEN}3: Edit EDN Based on IP ${RESET}"
-    echo -e "   - ${CYAN}Detects network environment (internal/external).${RESET}"
+    echo -e "${GREEN}3: Set environment variable & Edit EDN Based on IP ${RESET}"
     echo -e "   - ${CYAN}Connects to a remote server via SSH.${RESET}"
+    echo -e "   - ${CYAN}Detects network environment (internal/external).${RESET}"
+    echo -e "   - ${CYAN}copies the appropriate environment file.${RESET}"
     echo -e "   - ${CYAN}Modifies proxy settings in configuration files accordingly.${RESET}"
     echo ""
 
