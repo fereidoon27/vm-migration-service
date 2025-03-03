@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # File containing the list of VM IP addresses
-VM_IPS_FILE="vm_cr"
-CHRONY_EXPORTER_BINARY="chrony_exporter"
+# VM_IPS_FILE="vm_cr"
+VM_IPS_FILE="$(dirname "$0")/vm_cr"
+
+CHRONY_EXPORTER_BINARY="$(dirname "$0")/chrony_exporter"
 
 # Read VM IPs into an array
 mapfile -t vm_ips < "$VM_IPS_FILE"

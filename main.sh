@@ -23,7 +23,7 @@ while true; do
     echo -e "   - ${CYAN}Direct synchronization or via an intermediate machine if needed.${RESET}"
     echo ""
 
-    echo -e "${GREEN}3: Set environment variable & Edit EDN Based on IP ${RESET}"
+    echo -e "${GREEN}3: Set environment variable & Edit EDN Based on IP${RESET}"
     echo -e "   - ${CYAN}Connects to a remote server via SSH.${RESET}"
     echo -e "   - ${CYAN}Detects network environment (internal/external).${RESET}"
     echo -e "   - ${CYAN}Copies the appropriate environment file.${RESET}"
@@ -34,11 +34,15 @@ while true; do
     echo -e "   - ${CYAN}Remotely updates, upgrades, reboots, and installs essential packages on an Ubuntu 22.04 VM via SSH.${RESET}"
     echo ""
 
+    echo -e "${GREEN}5: Chrony Exporter Auto-Setup${RESET}"
+    echo -e "   - ${CYAN}Deploys and configures Chrony Exporter on multiple VMs automatically.${RESET}"
+    echo ""
+
     echo -e "${RED}0: Exit - Terminate the main script.${RESET}"
     echo -e "${CYAN}========================================${RESET}"
 
     # Prompt the user for input
-    read -p "Enter a number (0, 1, 2, 3, 4): " choice
+    read -p "Enter a number (0, 1, 2, 3, 4, 5): " choice
 
     case $choice in
         1)
@@ -61,6 +65,11 @@ while true; do
             echo "Running install_packages.sh..."
             ./install_packages.sh
             ;;
+        5)
+            # Run Chrony Exporter setup script
+            echo "Running Chrony Exporter Auto-Setup..."
+            ./chrony_exporter/setup_chrony_exporter_on_vms.sh
+            ;;
         0)
             # Exit the script
             echo "Exiting Main Script. Goodbye!"
@@ -68,7 +77,7 @@ while true; do
             ;;
         *)
             # Handle invalid input
-            echo "Invalid choice. Please enter a valid number (0, 1, 2, 3, or 4)."
+            echo "Invalid choice. Please enter a valid number (0, 1, 2, 3, 4, or 5)."
             ;;
     esac
 done
