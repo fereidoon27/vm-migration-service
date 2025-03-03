@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Default values
-# DEFAULT_REMOTE_USER="ubuntu"
-# DEFAULT_REMOTE_IP="45.61.149.207"
-# DEFAULT_SSH_PORT="22"
-
-DEFAULT_REMOTE_USER="test1"
-DEFAULT_REMOTE_IP="10.10.20.206"
+Default values
+DEFAULT_REMOTE_USER="ubuntu"
+DEFAULT_REMOTE_IP="45.61.149.207"
 DEFAULT_SSH_PORT="22"
+
+# DEFAULT_REMOTE_USER="test1"
+# DEFAULT_REMOTE_IP="10.10.20.206"
+# DEFAULT_SSH_PORT="22"
 
 # Prompt user for input with defaults
 read -p "Enter remote VM username [$DEFAULT_REMOTE_USER]: " REMOTE_USER
