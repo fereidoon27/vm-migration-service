@@ -1,4 +1,4 @@
-DEST_USER=ubuntu
-DEST_IP=45.61.149.207
+DEST_USER=amin
+DEST_IP=10.10.20.202
 DEST_PORT=22
-DEST_PATH=/home/ubuntu/
+DEST_PATH=/home/amin/zoopa_action
