@@ -1,4 +1,5 @@
-SOURCE_USER=amin
-SOURCE_IP=10.10.20.201
+SOURCE_USER=ubuntu
+SOURCE_IP=45.61.149.207
 SOURCE_PORT=22
-SOURCE_PATH=/home/amin/zoopa_action
+SOURCE_PATH=/home/ubuntu/
+
