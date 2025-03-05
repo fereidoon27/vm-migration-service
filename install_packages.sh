@@ -2,7 +2,7 @@
 
 # Default values
 DEFAULT_REMOTE_USER="ubuntu"
-DEFAULT_REMOTE_IP="185.204.170.86"
+DEFAULT_REMOTE_IP="185.204.169.249"
 DEFAULT_SSH_PORT="22"
 
 # SSH options (Prevents SSH from asking about new host keys)
